@@ -4,7 +4,7 @@
   "description": "TechNova - Computer Equipment Sales System",
   "main": "server/index.js",
   "scripts": {
-    "start": "node server/index.js",
+    "start": "node server/db/seed.js && node server/index.js",
     "dev": "concurrently \"nodemon server/index.js\" \"npm run dev --prefix client\"",
     "build": "npm install && npm install --prefix client && npm run build --prefix client",
     "setup": "node server/db/seed.js"
