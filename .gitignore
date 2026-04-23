@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+client/node_modules/
+
+# Build
+client/dist/
+
+# Database (локальна БД, на сервері створюється через seed.js)
+server/data/
+
+# Environment (секретні дані — НІКОЛИ не пушити!)
+.env
+
+# Uploaded images (опційно)
+public/uploads/*
+!public/uploads/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/
+.idea/
