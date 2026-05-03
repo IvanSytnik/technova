@@ -83,6 +83,9 @@ export default function Footer() {
         {/* Payment icons + copyright */}
         <div style={{ borderTop: '1px solid var(--border)', paddingTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <p style={{ fontSize: 13, color: 'var(--text2)' }}>© 2025 TechNova Ukraine. {t.footer.rights}.</p>
+          <p style={{ fontSize: 11, color: 'var(--text2)', marginTop: 6, opacity: 0.6 }}>
+  В.С. Федоров | Група: ІН-26-3 | Керівник: Н.Л. Барченко | Кваліфікаційна робота бакалавра
+</p>
           <div style={{ display: 'flex', gap: 8 }}>
             {['Visa', 'Mastercard', 'Privat24', 'IBAN'].map(p => (
               <span key={p} style={{ padding: '4px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 11, color: 'var(--text2)', fontWeight: 600 }}>{p}</span>

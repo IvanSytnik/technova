@@ -9,6 +9,7 @@ import Notification from './components/Notification';
 import HomePage from './pages/HomePage';
 import CatalogPage from './pages/CatalogPage';
 import AdminPage from './pages/AdminPage';
+import AboutPage from './pages/AboutPage';
 import './styles/globals.css';
 
 function Layout() {
@@ -25,6 +26,7 @@ function Layout() {
           <Route path="/" element={<HomePage />} />
           <Route path="/catalog" element={<CatalogPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/about" element={<AboutPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

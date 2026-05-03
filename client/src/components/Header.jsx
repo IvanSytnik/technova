@@ -14,6 +14,7 @@ export default function Header() {
   const navLinks = [
     { to: '/', label: t.nav.home },
     { to: '/catalog', label: t.nav.catalog },
+    { to: '/about', label: t.nav.about },
     ...(adminToken ? [{ to: '/admin', label: t.nav.admin }] : []),
   ];
 
