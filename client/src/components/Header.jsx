@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, Globe, Cpu, Menu, X, Heart } from 'lucide-react';
+import { ShoppingCart, Globe, Cpu, Menu, X, Heart, User, LogIn } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useCustomer } from '../context/CustomerContext';
 import { useT } from '../i18n';
 
 export default function Header() {
   const { lang, switchLang, cartCount, cartTotal, setCartOpen, wishlist, adminToken } = useApp();
+  const { customer, isLoggedIn } = useCustomer();
   const t = useT(lang);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { pathname } = useLocation();
   const fmt = (n) => Number(n).toLocaleString('uk-UA');
+  const ua = lang === 'ua';
 
   const navLinks = [
     { to: '/', label: t.nav.home },
@@ -33,20 +36,15 @@ export default function Header() {
         </nav>
 
         <div className="header-actions">
-          {/* Language toggle */}
-          <button
-            onClick={() => switchLang(lang === 'ua' ? 'en' : 'ua')}
-            className="btn btn-outline btn-sm"
-            style={{ gap: 6, padding: '6px 12px' }}
-          >
-            <Globe size={13} />
-            {lang.toUpperCase()}
+          {/* Language */}
+          <button onClick={() => switchLang(lang === 'ua' ? 'en' : 'ua')} className="btn btn-outline btn-sm" style={{ gap: 6, padding: '6px 12px' }}>
+            <Globe size={13} />{lang.toUpperCase()}
           </button>
 
           {/* Wishlist */}
           {wishlist.length > 0 && (
             <div style={{ position: 'relative' }}>
-              <button className="btn-ghost btn" style={{ padding: 8 }}>
+              <button className="btn btn-ghost" style={{ padding: 8 }}>
                 <Heart size={18} />
               </button>
               <span style={{ position: 'absolute', top: -4, right: -4, background: '#f43f5e', color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -55,12 +53,23 @@ export default function Header() {
             </div>
           )}
 
+          {/* Customer account */}
+          {isLoggedIn ? (
+            <Link to="/account" className="btn btn-outline btn-sm" style={{ gap: 7, padding: '6px 14px' }}>
+              <User size={14} />
+              <span style={{ maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {customer.first_name}
+              </span>
+            </Link>
+          ) : (
+            <Link to="/login" className="btn btn-outline btn-sm" style={{ gap: 7, padding: '6px 14px' }}>
+              <LogIn size={14} />
+              {ua ? 'Увійти' : 'Sign In'}
+            </Link>
+          )}
+
           {/* Cart */}
-          <button
-            onClick={() => setCartOpen(true)}
-            className="btn btn-outline btn-sm"
-            style={{ position: 'relative', gap: 8 }}
-          >
+          <button onClick={() => setCartOpen(true)} className="btn btn-outline btn-sm" style={{ position: 'relative', gap: 8 }}>
             <ShoppingCart size={16} />
             {cartCount > 0 ? (
               <>
@@ -74,8 +83,8 @@ export default function Header() {
             )}
           </button>
 
-          {/* Mobile menu */}
-          <button className="btn-ghost btn" style={{ display: 'none', padding: 8 }} onClick={() => setMobileOpen(!mobileOpen)} id="mobile-menu-btn">
+          {/* Mobile menu toggle */}
+          <button className="btn btn-ghost" id="mobile-menu-btn" style={{ display: 'none', padding: 8 }} onClick={() => setMobileOpen(!mobileOpen)}>
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
@@ -89,10 +98,19 @@ export default function Header() {
               {l.label}
             </Link>
           ))}
+          {isLoggedIn ? (
+            <Link to="/account" className="nav-link" style={{ display: 'block', padding: '10px 4px' }} onClick={() => setMobileOpen(false)}>
+              <User size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} />{customer.first_name}
+            </Link>
+          ) : (
+            <Link to="/login" className="nav-link" style={{ display: 'block', padding: '10px 4px' }} onClick={() => setMobileOpen(false)}>
+              <LogIn size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} />{ua ? 'Увійти' : 'Sign In'}
+            </Link>
+          )}
         </div>
       )}
 
-      <style>{`@media(max-width:640px){#mobile-menu-btn{display:flex!important;}}`}</style>
+      <style>{`@media(max-width:640px){#mobile-menu-btn{display:flex!important;} .nav{display:none!important;}}`}</style>
     </header>
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, CheckCircle, Loader, Package } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useCustomer } from '../context/CustomerContext';
 import { useT } from '../i18n';
 import { createOrder } from '../api';
 
@@ -8,11 +9,14 @@ const fmt = (n) => Number(n).toLocaleString('uk-UA');
 
 export default function CheckoutModal({ onClose }) {
   const { lang, cart, cartTotal, clearCart, notify } = useApp();
+  const { customer } = useCustomer();
   const t = useT(lang);
   const tc = t.checkout;
 
   const [form, setForm] = useState({
-    customer_name: '', customer_email: '', customer_phone: '',
+    customer_name: customer?.first_name ? `${customer.first_name} ${customer.last_name}` : '',
+    customer_email: customer?.email || '',
+    customer_phone: customer?.phone || '',
     customer_city: '', customer_address: '',
     delivery_method: 'nova_poshta', payment_method: 'card', notes: '',
   });
@@ -56,7 +60,7 @@ export default function CheckoutModal({ onClose }) {
         image: i.image,
       }));
 
-      const result = await createOrder({ ...form, items, total: cartTotal, lang });
+      const result = await createOrder({ ...form, items, total: cartTotal, lang, customer_id: customer?.id || null });
       setSuccess(result);
       clearCart();
     } catch (err) {

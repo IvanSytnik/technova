@@ -1,15 +1,20 @@
 import { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
+import { CustomerProvider } from './context/CustomerContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import CartDrawer from './components/CartDrawer';
 import CheckoutModal from './components/CheckoutModal';
 import Notification from './components/Notification';
 import HomePage from './pages/HomePage';
+import AboutPage from './pages/AboutPage';
 import CatalogPage from './pages/CatalogPage';
 import AdminPage from './pages/AdminPage';
-import AboutPage from './pages/AboutPage';
+import AccountPage from './pages/AccountPage';
+import RegisterPage from './pages/RegisterPage';
+import LoginPage from './pages/LoginPage';
+import { VerifyEmailPage, ForgotPasswordPage, ResetPasswordPage } from './pages/AuthPages';
 import './styles/globals.css';
 
 function Layout() {
@@ -25,8 +30,14 @@ function Layout() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/catalog" element={<CatalogPage />} />
-          <Route path="/admin" element={<AdminPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/account" element={<AccountPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
@@ -50,7 +61,9 @@ function NotFound() {
 export default function App() {
   return (
     <AppProvider>
-      <Layout />
+      <CustomerProvider>
+        <Layout />
+      </CustomerProvider>
     </AppProvider>
   );
 }

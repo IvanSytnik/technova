@@ -23,15 +23,16 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'Invalid email address' });
   }
 
+  const { customer_id } = req.body;
   const order_number = generateOrderNumber();
   const itemsJson = JSON.stringify(items);
 
   try {
     const result = db.prepare(`
-      INSERT INTO orders (order_number, customer_name, customer_email, customer_phone, customer_city, customer_address, delivery_method, payment_method, items, total, notes, lang)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO orders (order_number, customer_id, customer_name, customer_email, customer_phone, customer_city, customer_address, delivery_method, payment_method, items, total, notes, lang)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      order_number, customer_name, customer_email, customer_phone,
+      order_number, customer_id || null, customer_name, customer_email, customer_phone,
       customer_city || '', customer_address || '',
       delivery_method || 'nova_poshta',
       payment_method || 'card',

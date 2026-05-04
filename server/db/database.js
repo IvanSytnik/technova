@@ -19,25 +19,67 @@ const SCHEMA = `
     specs TEXT DEFAULT '{}', featured INTEGER DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now'))
   );
+
   CREATE TABLE IF NOT EXISTS orders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_number TEXT UNIQUE NOT NULL, customer_name TEXT NOT NULL,
-    customer_email TEXT NOT NULL, customer_phone TEXT NOT NULL,
-    customer_city TEXT DEFAULT '', customer_address TEXT DEFAULT '',
-    delivery_method TEXT DEFAULT 'nova_poshta', payment_method TEXT DEFAULT 'card',
-    items TEXT NOT NULL, total INTEGER NOT NULL, status TEXT DEFAULT 'pending',
+    order_number TEXT UNIQUE NOT NULL,
+    customer_id INTEGER,
+    customer_name TEXT NOT NULL, customer_email TEXT NOT NULL,
+    customer_phone TEXT NOT NULL, customer_city TEXT DEFAULT '',
+    customer_address TEXT DEFAULT '',
+    delivery_method TEXT DEFAULT 'nova_poshta',
+    payment_method TEXT DEFAULT 'card',
+    items TEXT NOT NULL, total INTEGER NOT NULL,
+    status TEXT DEFAULT 'pending',
     notes TEXT DEFAULT '', lang TEXT DEFAULT 'ua',
-    created_at TEXT DEFAULT (datetime('now'))
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (customer_id) REFERENCES customers(id)
   );
+
   CREATE TABLE IF NOT EXISTS admins (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL, password TEXT NOT NULL,
     email TEXT DEFAULT '', created_at TEXT DEFAULT (datetime('now'))
   );
-  CREATE TABLE IF NOT EXISTS categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT UNIQUE NOT NULL,
-    name_ua TEXT NOT NULL, name_en TEXT NOT NULL, icon TEXT DEFAULT 'package'
+
+  CREATE TABLE IF NOT EXISTS customers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    first_name TEXT DEFAULT '',
+    last_name TEXT DEFAULT '',
+    phone TEXT DEFAULT '',
+    is_verified INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS tokens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_id INTEGER NOT NULL,
+    token TEXT UNIQUE NOT NULL,
+    type TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (customer_id) REFERENCES customers(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS addresses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_id INTEGER NOT NULL,
+    label TEXT DEFAULT 'Дім',
+    city TEXT DEFAULT '',
+    address TEXT DEFAULT '',
+    is_default INTEGER DEFAULT 0,
+    FOREIGN KEY (customer_id) REFERENCES customers(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    key TEXT UNIQUE NOT NULL, name_ua TEXT NOT NULL,
+    name_en TEXT NOT NULL, icon TEXT DEFAULT 'package'
+  );
+
   INSERT OR IGNORE INTO categories VALUES
     (1,'laptops','Ноутбуки','Laptops','cpu'),
     (2,'monitors','Монітори','Monitors','monitor'),
@@ -52,7 +94,6 @@ const save = () => {
   try { fs.writeFileSync(DB_PATH, Buffer.from(db.export())); } catch (e) { console.error('DB save error:', e.message); }
 };
 
-// Flatten params array
 const flat = (params) => {
   if (!params || params.length === 0) return [];
   const arr = Array.isArray(params[0]) ? params[0] : [...params];
@@ -64,19 +105,18 @@ const makeStmt = (sql) => ({
     const stmt = db.prepare(sql);
     stmt.run(flat(params));
     stmt.free();
-    const changes = db.getRowsModified();
-    // Get lastInsertRowid BEFORE save (save doesn't reset it but let's be safe)
     const s2 = db.prepare('SELECT last_insert_rowid() as lid');
     s2.step();
     const row = s2.getAsObject();
     s2.free();
     const lastInsertRowid = row.lid ?? 0;
     save();
-    return { lastInsertRowid, changes };
+    return { lastInsertRowid, changes: db.getRowsModified() };
   },
   get(...params) {
     const stmt = db.prepare(sql);
-    stmt.bind(flat(params));
+    const p = flat(params);
+    if (p.length) stmt.bind(p);
     const row = stmt.step() ? stmt.getAsObject() : undefined;
     stmt.free();
     return row;
@@ -106,7 +146,6 @@ const wrapper = {
   },
   prepare: (sql) => makeStmt(sql),
   exec(sql) { if (db) { db.run(sql); save(); } },
-  // Simplified transaction - run each item sequentially, save once at end
   transaction(fn) {
     return (...args) => {
       const result = fn(...args);
