@@ -8,6 +8,7 @@ const db = require('./db/database');
 const { apiLimiter } = require('./middleware/rateLimit');
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 5000;
 let dbReady = false;
 
