@@ -1,16 +1,10 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-const createTransporter = () => nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT) || 587,
-  secure: process.env.SMTP_SECURE === 'true',
-  auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-});
-
-const FROM = () => process.env.SMTP_FROM || `"TechNova" <${process.env.SMTP_USER}>`;
+const getClient = () => new Resend(process.env.RESEND_API_KEY);
 const BASE_URL = () => process.env.CLIENT_URL || 'http://localhost:5173';
+const FROM = () => process.env.EMAIL_FROM || 'TechNova <onboarding@resend.dev>';
 const fmt = (n) => Number(n).toLocaleString('uk-UA');
-const canSend = () => !!(process.env.SMTP_USER && process.env.SMTP_PASS);
+const canSend = () => !!process.env.RESEND_API_KEY;
 
 const verifyEmailHTML = (name, token) => {
   const url = `${BASE_URL()}/verify-email?token=${token}`;
@@ -65,7 +59,7 @@ const orderConfirmHTML = (order, lang = 'ua') => {
         <div class="info-box"><div class="info-label">${isUa ? 'Телефон' : 'Phone'}</div><div class="info-value">${order.customer_phone}</div></div>
         <div class="info-box"><div class="info-label">Email</div><div class="info-value">${order.customer_email}</div></div>
         <div class="info-box"><div class="info-label">${isUa ? 'Місто' : 'City'}</div><div class="info-value">${order.customer_city || '—'}</div></div>
-        <div class="info-box"><div class="info-label">${isUa ? 'Доставка' : 'Delivery'}</div><div class="info-value">${order.delivery_method === 'nova_poshta' ? 'Нова Пошта' : order.delivery_method === 'ukrposhta' ? 'Укрпошта' : "Кур'єр / Courier"}</div></div>
+        <div class="info-box"><div class="info-label">${isUa ? 'Доставка' : 'Delivery'}</div><div class="info-value">${order.delivery_method === 'nova_poshta' ? 'Нова Пошта' : order.delivery_method === 'ukrposhta' ? 'Укрпошта' : "Кур'єр"}</div></div>
       </div>
     </div>
     <div class="foot"><p>${isUa ? 'Питання?' : 'Questions?'} <strong>${process.env.ADMIN_NOTIFY_EMAIL || 'support@technova.ua'}</strong></p><p style="margin-top:8px">© 2025 TechNova Ukraine</p></div>
@@ -89,31 +83,82 @@ const adminOrderHTML = (order) => {
   </div></div></body></html>`;
 };
 
+// ── Send functions (HTTP API — no port blocking) ──────────────────
 const sendVerificationEmail = async (customer, token) => {
-  if (!canSend()) { console.log('⚠️ Email off. Verify token:', token); return { success: false }; }
+  if (!canSend()) {
+    console.log('⚠️  No RESEND_API_KEY. Verify token:', token);
+    return { success: false };
+  }
   try {
-    await createTransporter().sendMail({ from: FROM(), to: customer.email, subject: 'TechNova — Підтвердіть email ✉️', html: verifyEmailHTML(customer.first_name, token) });
+    const resend = getClient();
+    const { error } = await resend.emails.send({
+      from: FROM(),
+      to: customer.email,
+      subject: 'TechNova — Підтвердіть email ✉️',
+      html: verifyEmailHTML(customer.first_name, token),
+    });
+    if (error) throw new Error(error.message);
+    console.log('✅ Verification email sent to', customer.email);
     return { success: true };
-  } catch (e) { console.error('Email error:', e.message); return { success: false }; }
+  } catch (e) {
+    console.error('Email error:', e.message);
+    return { success: false };
+  }
 };
 
 const sendResetEmail = async (customer, token) => {
-  if (!canSend()) { console.log('⚠️ Email off. Reset token:', token); return { success: false }; }
+  if (!canSend()) {
+    console.log('⚠️  No RESEND_API_KEY. Reset token:', token);
+    return { success: false };
+  }
   try {
-    await createTransporter().sendMail({ from: FROM(), to: customer.email, subject: 'TechNova — Скидання пароля 🔐', html: resetPasswordHTML(customer.first_name, token) });
+    const resend = getClient();
+    const { error } = await resend.emails.send({
+      from: FROM(),
+      to: customer.email,
+      subject: 'TechNova — Скидання пароля 🔐',
+      html: resetPasswordHTML(customer.first_name, token),
+    });
+    if (error) throw new Error(error.message);
+    console.log('✅ Reset email sent to', customer.email);
     return { success: true };
-  } catch (e) { console.error('Email error:', e.message); return { success: false }; }
+  } catch (e) {
+    console.error('Email error:', e.message);
+    return { success: false };
+  }
 };
 
 const sendOrderEmails = async (order) => {
-  if (!canSend()) { console.log('⚠️ Email off. Order:', order.order_number); return { success: false }; }
+  if (!canSend()) {
+    console.log('⚠️  No RESEND_API_KEY. Order:', order.order_number);
+    return { success: false };
+  }
   try {
-    const t = createTransporter();
-    await t.sendMail({ from: FROM(), to: order.customer_email, subject: `Ваше замовлення #${order.order_number} прийнято ✓`, html: orderConfirmHTML(order, order.lang || 'ua') });
-    if (process.env.ADMIN_NOTIFY_EMAIL) await t.sendMail({ from: FROM(), to: process.env.ADMIN_NOTIFY_EMAIL, subject: `🔔 Нове замовлення #${order.order_number}`, html: adminOrderHTML(order) });
-    console.log(`✅ Emails sent: #${order.order_number}`);
+    const resend = getClient();
+    const lang = order.lang || 'ua';
+
+    await resend.emails.send({
+      from: FROM(),
+      to: order.customer_email,
+      subject: `Ваше замовлення #${order.order_number} прийнято ✓`,
+      html: orderConfirmHTML(order, lang),
+    });
+
+    if (process.env.ADMIN_NOTIFY_EMAIL) {
+      await resend.emails.send({
+        from: FROM(),
+        to: process.env.ADMIN_NOTIFY_EMAIL,
+        subject: `🔔 Нове замовлення #${order.order_number}`,
+        html: adminOrderHTML(order),
+      });
+    }
+
+    console.log(`✅ Order emails sent: #${order.order_number}`);
     return { success: true };
-  } catch (e) { console.error('Email error:', e.message); return { success: false }; }
+  } catch (e) {
+    console.error('Email error:', e.message);
+    return { success: false };
+  }
 };
 
 module.exports = { sendVerificationEmail, sendResetEmail, sendOrderEmails };
