@@ -16,19 +16,19 @@ router.post('/register', registerLimiter, validate(registerSchema), async (req, 
 
   const existing = db.prepare('SELECT id FROM customers WHERE email = ?').get(email.toLowerCase());
   if (existing) {
-    // Same message for security (no enumeration)
-    return res.status(400).json({ error: 'Registration failed. Check your data.' });
+    return res.status(400).json({ error: 'Цей email вже зареєстрований / Email already registered' });
   }
 
   const hashed = bcrypt.hashSync(password, 12);
-  const result = db.prepare(
-    'INSERT INTO customers (email, password, first_name, last_name, phone) VALUES (?,?,?,?,?)'
+  db.prepare(
+    'INSERT INTO customers (email, password, first_name, last_name, phone, is_verified) VALUES (?,?,?,?,?,1)'
   ).run(email.toLowerCase(), hashed, first_name.trim(), last_name.trim(), phone || '');
 
-  const customerId = result.lastInsertRowid;
-  // Get the actual ID if lastInsertRowid is 0
-  const customer = db.prepare('SELECT * FROM customers WHERE email = ?').get(email.toLowerCase());
-  const cid = customer?.id || customerId;
+  res.status(201).json({
+    success: true,
+    message: 'Registration successful. You can now log in.',
+  });
+});
 
   // Create verification token
   const token = genToken();
