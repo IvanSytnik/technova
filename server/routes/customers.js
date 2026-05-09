@@ -30,23 +30,6 @@ router.post('/register', registerLimiter, validate(registerSchema), async (req, 
   });
 });
 
-  // Create verification token
-  const token = genToken();
-  db.prepare('INSERT INTO tokens (customer_id, token, type, expires_at) VALUES (?,?,?,?)').run(
-    cid, token, 'verify', addHours(24)
-  );
-
-  // Send email (non-blocking)
-  sendVerificationEmail(customer || { email, first_name }, token).catch(console.error);
-
-  res.status(201).json({
-    success: true,
-    message: 'Registration successful. Please check your email to verify your account.',
-    // In dev mode without email, return token for testing
-    ...((!process.env.SMTP_USER) && { dev_verify_token: token }),
-  });
-});
-
 // ── VERIFY EMAIL ──────────────────────────────────────────────────
 router.get('/verify/:token', (req, res) => {
   const { token } = req.params;
